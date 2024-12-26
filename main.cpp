@@ -1,63 +1,40 @@
-#include <iostream>
+#include "Utils.hpp"
 
-#include "Color.hpp"
-#include "Vec3.hpp"
-#include "Ray.hpp"
+#include "Camera.hpp"
+#include "Hittable.hpp"
+#include "HittableList.hpp"
+#include "Material.hpp"
+#include "Sphere.hpp"
 
-bool hitSphere(const Point3& center, double radius, const Ray& r) {
-	Vec3 oc = center - r.origin();
-
-	auto a = dot(r.direction(), r.direction());
-	auto b = -2.0 * dot(r.direction(), oc);
-	auto c = dot(oc, oc) - radius * radius;
-	auto discriminant = b * b - 4 * a * c; 
-	return discriminant >= 0;
-
-}
-
-Color rayColor(const Ray& r) {
-	if (hitSphere(Point3(0, 0, -1), 0.5, r))
-		return Color(1, 0, 0);
-
-	Vec3 unitDirection = unitVector(r.direction());
-	auto a = 0.5 * (unitDirection.y() + 1.0);
-	return (1.0 - a) * Color(1.0,1.0,1.0) + a * Color(0.5, 0.7,1.0);
-}
 
 int main(void) {
-	// Image
-	int imageWidth = 400;
-	auto aspectRatio = double(16) / double(9);
-	int imageHeight = int(imageWidth / aspectRatio);
-	imageHeight = (imageHeight < 1) ? 1 : imageHeight;
+    HittableList world;
 
-	// Camera
-	auto focalLength = 1.0;
-	auto viewportHeight = 2.0;
-	auto viewportWidth = viewportHeight * (double(imageWidth) / imageHeight);
-	auto cameraCenter = Point3(0, 0, 0);
+    auto material_ground = make_shared<Lambertian>(Color(0.8, 0.8, 0.0));
+    auto material_center = make_shared<Lambertian>(Color(0.1, 0.2, 0.5));
+    auto material_left = make_shared<Dielectric>(1.50);
+    auto material_bubble = make_shared<Dielectric>(1.00 / 1.50);
+    auto material_right = make_shared<Metal>(Color(0.8, 0.6, 0.2), 1.0);
 
-	auto viewportU = Vec3(viewportWidth, 0, 0);
-	auto viewportV = Vec3(0, -viewportHeight, 0);
+    world.add(make_shared<Sphere>(Point3(0.0, -100.5, -1.0), 100.0, material_ground));
+    world.add(make_shared<Sphere>(Point3(0.0, 0.0, -1.2), 0.5, material_center));
+    world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), 0.5, material_left));
+    world.add(make_shared<Sphere>(Point3(-1.0, 0.0, -1.0), 0.4, material_bubble));
+    world.add(make_shared<Sphere>(Point3(1.0, 0.0, -1.0), 0.5, material_right));
 
-	auto pixelDeltaU = viewportU / imageWidth;
-	auto pixelDeltaV = viewportV / imageHeight;
+	Camera camera; 
+	camera.setRatio(16.0/9.0);
+	camera.setWidth(400);
+	camera.setMaxDepth(50);
+	camera.setSamplesPerPixel(100);
 
-	auto viewportUpperLeft = cameraCenter - Vec3(0, 0, focalLength) - viewportU / 2 - viewportV / 2;
-	auto pixel00Loc = viewportUpperLeft + 0.5 * (pixelDeltaU + pixelDeltaV);
-	
-	std::cout << "P3\n" << imageWidth << ' ' << imageHeight << "\n255\n";
+	camera.setFov(20);
+	camera.setLookfrom(Point3(-2, 2, 1));
+	camera.setLookat(Point3(0, 0, -1));
+	camera.setVup(Vec3(0, 1, 0));
 
-	for (auto j = 0; j < imageHeight; ++j) {
-		std::clog << "\rScanlines remaining: " << (imageHeight - j) << std::endl;
-		for (auto i = 0; i < imageWidth; ++i) {
-			auto pixelCenter = pixel00Loc + (i * pixelDeltaU) + (j * pixelDeltaV);
-			auto rayDirection = pixelCenter - cameraCenter;
-			Ray r(cameraCenter, rayDirection);
+	camera.setFocusDist(3.4);
+	camera.setDefocusAngle(10.0);
 
-			Color pixelColor = rayColor(r);
-			writeColor(std::cout, pixelColor); 
-		}
-	}
-	std::clog << "\rDone.				\n"; 
+	camera.render(world);
 }

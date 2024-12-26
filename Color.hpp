@@ -1,19 +1,27 @@
 #pragma once
 
 #include "Vec3.hpp"
-
-#include <iostream>
+#include "Interval.hpp"
+#include "Utils.hpp"
 
 using Color = Vec3; 
 
-void writeColor(std::ostream& out, const Color& pixel_color) {
-	auto r = pixel_color.x(); 
-	auto g = pixel_color.y();
-	auto b = pixel_color.z();
+inline double linearToGamma(double linearComponent) {
+	if (linearComponent > 0) {
+		return std::sqrt(linearComponent);
+	}
+	return 0;
+}
 
-	int rByte = int(255.999 * r);
-	int gByte = int(255.999 * g);
-	int bByte = int(255.999 * b);
+void writeColor(std::ostream& out, const Color& pixel_color) {
+	auto r = linearToGamma(pixel_color.x()); 
+	auto g = linearToGamma(pixel_color.y());
+	auto b = linearToGamma(pixel_color.z());
+
+	static const Interval intensity(0.000, 0.999);
+	int rByte = int(256 * intensity.clamp(r));
+	int gByte = int(256 * intensity.clamp(g));
+	int bByte = int(256 * intensity.clamp(b));
 
 	out << rByte << ' ' << gByte << ' ' << bByte << std::endl;
 }
