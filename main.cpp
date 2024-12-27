@@ -8,6 +8,50 @@
 #include "Sphere.hpp"
 #include "Texture.hpp"
 
+void perlinSpheres() {
+    HittableList world;
+
+    auto perText = make_shared<NoiseTexture>(4);
+    world.add(make_shared<Sphere>(Point3(0, -1000, 0), 1000, make_shared<Lambertian>(perText)));
+    world.add(make_shared<Sphere>(Point3(0, 2, 0), 2, make_shared<Lambertian>(perText)));
+
+    Camera camera;
+    camera.setRatio(16.0 / 9.0);
+    camera.setWidth(400);
+    camera.setSamplesPerPixel(100);
+    camera.setMaxDepth(50);
+
+    camera.setFov(20);
+    camera.setLookfrom(Point3(13, 2, 3));
+    camera.setLookat(Point3(0, 0, 0));
+    camera.setVup(Vec3(0, 1, 0));
+
+    camera.setDefocusAngle(0);
+    camera.render(world);
+
+}
+
+void earth() {
+    auto earthTexture = make_shared<ImageTexture>("earthmap.jpg");
+    auto earthSurface = make_shared<Lambertian>(earthTexture);
+    auto globe = make_shared<Sphere>(Point3(0, 0, 0), 2, earthSurface);
+
+    Camera camera;
+
+    camera.setRatio(16.0/9.0);
+    camera.setWidth(400);
+    camera.setSamplesPerPixel(100);
+    camera.setMaxDepth(50);
+
+    camera.setFov(20);
+    camera.setLookfrom(Point3(0, 0, 12));
+    camera.setLookat(Point3(0, 0, 0));
+    camera.setVup(Vec3(0, 1, 0));
+
+    camera.setDefocusAngle(0);
+    camera.render(HittableList(globe));
+}
+
 void bouncingSpheres() {
     HittableList world;
 
@@ -100,9 +144,11 @@ void checkeredSpheres() {
 }
 
 int main(void) {
-    switch (2) {
+    switch (4) {
     case 1: bouncingSpheres(); break;
-    case 2: checkeredSpheres(); break;
+    case 2: checkeredSpheres(); break; 
+    case 3: earth(); break;
+    case 4: perlinSpheres(); break;
     }
 
 }
