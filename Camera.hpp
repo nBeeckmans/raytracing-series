@@ -101,9 +101,9 @@ private:
 		_imageHeight = int(_imageWidth / _aspectRatio);
 		_imageHeight = (_imageHeight < 1) ? 1 : _imageHeight;
 
-		_center = _lookfrom;
-
 		_pixelSampleScale = 1.0 / _samplesPerPixel;
+
+		_center = _lookfrom;
 
 		auto theta = degreesToRadians(_fov);
 		auto h = std::tan(theta / 2);
@@ -121,7 +121,6 @@ private:
 		_pixelDeltaV = viewportV / _imageHeight;
 
 		auto viewportUpperLeft = _center - (_focusDist * _w) - viewportU / 2 - viewportV / 2;
-
 		_pixel00Location = viewportUpperLeft + 0.5 * (_pixelDeltaU + _pixelDeltaV);
 
 		auto defocusRadius = _focusDist * std::tan(degreesToRadians(_defocusAngle / 2));
@@ -162,8 +161,9 @@ private:
 
 		auto rayOrigin = (_defocusAngle <= 0) ? _center : defocusDiskSample(); 
 		auto rayDirection = pixelSample - rayOrigin;
+		auto rayTime = randomDouble();
 
-		return Ray(rayOrigin, rayDirection);
+		return Ray(rayOrigin, rayDirection, rayTime);
 	}
 
 	Vec3 sampleSquare() const {

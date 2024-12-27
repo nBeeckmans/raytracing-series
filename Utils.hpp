@@ -27,6 +27,10 @@ inline double randomDouble(double min, double max) {
 	return min + (max - min) * randomDouble();
 }
 
+inline int randomInt(int min, int max) {
+	return int(randomDouble(min, max + 1));
+}
+
 #include "Color.hpp"
 #include "Interval.hpp"
 #include "Ray.hpp"

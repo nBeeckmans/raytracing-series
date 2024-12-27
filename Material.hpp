@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Hittable.hpp"
+#include "Texture.hpp"
 
 class Material {
 public:
@@ -10,9 +11,10 @@ public:
 
 class Lambertian : public Material {
 private:
-	Color _albedo;
+	shared_ptr<Texture> _texture;
 public:
-	Lambertian(const Color& albedo) : _albedo (albedo) {}
+	Lambertian(const Color& albedo) : _texture(make_shared<SolidColor>(albedo)) {}
+	Lambertian(shared_ptr<Texture> texture) : _texture(texture) {}
 
 	bool scatter(const Ray& rIn, const HitRecord& record, Color& attenuation, Ray& scattered) const override {
 		auto scatterDirection = record.normal + randomUnitVector();
@@ -21,8 +23,8 @@ public:
 			scatterDirection = record.normal;
 		}
 
-		scattered = Ray(record.p, scatterDirection);
-		attenuation = _albedo;
+		scattered = Ray(record.p, scatterDirection, rIn.getTime());
+		attenuation = _texture->value(record.u, record.v, record.p);
 		return true; 
 	}
 };
@@ -37,7 +39,7 @@ public:
 	bool scatter(const Ray& rIn, const HitRecord& record, Color& attenuation, Ray& scattered) const override {
 		Vec3 reflected = reflect(rIn.direction(), record.normal);
 		reflected = unitVector(reflected) + (_fuzz * randomUnitVector());
-		scattered = Ray(record.p, reflected);
+		scattered = Ray(record.p, reflected, rIn.getTime());
 		attenuation = _albedo;
 		return (dot(scattered.direction(), record.normal) > 0); 
 	}
@@ -67,7 +69,7 @@ public:
 		else {
 			direction = refract(unitDirection, record.normal, ri);
 		}
-		scattered = Ray(record.p, direction);
+		scattered = Ray(record.p, direction, rIn.getTime());
 		return true;
 	}
 
