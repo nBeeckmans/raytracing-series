@@ -8,12 +8,14 @@ private:
 public:
 	AABB() = default;
 
-	AABB(const Interval& x, const Interval& y, const Interval& z) : _x(x), _y(y), _z(z) {}
+	AABB(const Interval& x, const Interval& y, const Interval& z) : _x(x), _y(y), _z(z) { padToMinimums(); }
 
 	AABB(const Point3& a, const Point3& b) {
 		_x = (a[0] <= b[0]) ? Interval(a[0], b[0]) : Interval(b[0], a[0]);
 		_y = (a[1] <= b[1]) ? Interval(a[1], b[1]) : Interval(b[1], a[1]);
 		_z = (a[2] <= b[2]) ? Interval(a[2], b[2]) : Interval(b[2], a[2]);
+
+		padToMinimums();
 	}
 
 	AABB(const AABB& b1, const AABB& b2) {
@@ -64,8 +66,36 @@ public:
 			return _y.size() > _z.size() ? 1 : 2;
 		}
 	}
+
+	Interval getX() const {
+		return this->_x;
+	}
+
+	Interval getY() const {
+		return this->_y;
+	}
+
+	Interval getZ() const {
+		return this->_z;
+	}
+
 	static const AABB empty, universe;
+private:
+	void padToMinimums() {
+		double delta = 0.0001;
+		if (_x.size() < delta) _x = _x.expand(delta);
+		if (_y.size() < delta) _y = _y.expand(delta);
+		if (_z.size() < delta) _z = _z.expand(delta);
+	}
 };
 
 const AABB AABB::empty = AABB(Interval::empty, Interval::empty, Interval::empty);
 const AABB AABB::universe = AABB(Interval::universe, Interval::universe, Interval::universe);
+
+AABB operator+(const AABB& bBox, const Vec3& offset) {
+	return AABB(bBox.getX() + offset.x(), bBox.getY() + offset.y(), bBox.getZ() + offset.z());
+}
+
+AABB operator+(const Vec3& offset, const AABB& bBox) {
+	return bBox + offset;
+}

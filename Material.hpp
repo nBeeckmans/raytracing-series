@@ -7,6 +7,9 @@ class Material {
 public:
 	virtual ~Material() = default;
 	virtual bool scatter(const Ray& rIn, const HitRecord& record, Color& attenuation, Ray& scattered) const { return false; }
+	virtual Color emitted(double u, double v, const Point3& p) const {
+		return Color(0, 0, 0);
+	}
 };
 
 class Lambertian : public Material {
@@ -77,5 +80,31 @@ public:
 		auto r0 = (1 - refractionIndex) / (1 + refractionIndex);
 		r0 = r0 * r0;
 		return r0 + (1 - r0) * std::pow((1 - cosine), 5);
+	}
+};
+
+class DiffuseLight : public Material {
+private:
+	shared_ptr<Texture> _tex;
+public : 
+	DiffuseLight(shared_ptr<Texture> tex) : _tex(tex) {}
+	DiffuseLight(const Color& emit) : _tex(make_shared<SolidColor>(emit)) {}
+
+	Color emitted(double u, double v, const Point3& p) const override {
+		return _tex->value(u, v, p);
+	}
+};
+
+class Isotropic : public Material {
+private:
+	shared_ptr<Texture> _tex;
+public:
+	Isotropic(const Color& albedo) : _tex(make_shared<SolidColor>(albedo)) {}
+	Isotropic(shared_ptr<Texture> tex) : _tex(tex) {}
+
+	bool scatter(const Ray& rIn, const HitRecord& rec, Color& attenuation, Ray& scattered) const override {
+		scattered = Ray(rec.p, randomUnitVector(), rIn.getTime());
+		attenuation = _tex->value(rec.u, rec.v, rec.p);
+		return true;
 	}
 };

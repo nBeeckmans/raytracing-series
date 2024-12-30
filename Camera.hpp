@@ -3,13 +3,19 @@
 #include "Hittable.hpp"
 #include "Material.hpp"
 #include <vector>
+#include <omp.h>
 
 class Camera {
 private: 
+	std::vector<std::vector<Color>> _listColors;
+
+	Color _background;
+
 	Point3 _center;
 	Point3 _lookfrom = Point3(0,0,0);
 	Point3 _lookat = Point3(0,0,-1);
 	Point3 _pixel00Location;
+
 	Vec3 _vup = Vec3(0, 1, 0);
 	Vec3 _u, _v, _w;
 	Vec3 _pixelDeltaU, _pixelDeltaV;
@@ -27,7 +33,6 @@ private:
 	int _samplesPerPixel = 100;
 	int _maxDepth = 10;
 
-	std::vector<std::vector<Color>> _listColors;
 public:
 
 	void render(const Hittable& world) {
@@ -37,6 +42,9 @@ public:
 
 		#pragma omp parallel for
 		for (int j = 0; j < _imageHeight; ++j) {
+			if (omp_get_thread_num() == 0) {
+				std::clog << "percent compute done  : " << double(j) / double(_imageHeight) << std::flush;
+			}
 			for (int i = 0; i < _imageWidth; ++i) {
 				Color pixelColor(0, 0, 0);
 				for (int sample = 0; sample < _samplesPerPixel; ++sample) {
@@ -48,6 +56,7 @@ public:
 		}
 
 		for (int j = 0; j < _imageHeight; ++j) {
+			std::clog << "percent copy done  : " << double(j) / double(_imageHeight) << std::flush;
 			for (int i = 0; i < _imageWidth; ++i) {
 				writeColor(std::cout, _listColors[j][i]);
 			}
@@ -96,6 +105,10 @@ public:
 		this->_focusDist = focus;
 	}
 
+	void setBackgroundColor(const Color& color) {
+		this->_background = color;
+	}
+
 private:
 	void initialize() {
 		_imageHeight = int(_imageWidth / _aspectRatio);
@@ -139,14 +152,19 @@ private:
 		}
 		HitRecord record;
 
-		if (world.hit(r, Interval(0.001, infinity), record)) {
-			Ray scattered;
-			Color attenuation;
-
-			if (record.material->scatter(r, record, attenuation, scattered))
-				return attenuation * rayColor(scattered, (depth - 1), world);
-			return Color(0,0,0);
+		if (!world.hit(r, Interval(0.001, infinity), record)) {
+			return _background;
 		}
+
+		Ray scattered;
+		Color attenuation;
+		Color colorFromEmission = record.material->emitted(record.u, record.v, record.p);
+
+		if (!record.material->scatter(r, record, attenuation, scattered))
+			return colorFromEmission;
+		Color colorFromScatter = attenuation * rayColor(scattered, (depth - 1), world);
+
+		return colorFromEmission + colorFromScatter;
 
 		Vec3 unitDirection = unitVector(r.direction());
 		auto a = 0.5 * (unitDirection.y() + 1.0);
